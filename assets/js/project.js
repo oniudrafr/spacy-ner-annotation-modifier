@@ -215,14 +215,29 @@ $( "#entity" ).on("dblclick",".entityval",function(){
 	l(en_del_idx,en_len_cnt,delete_text,color_txt,tag_string);
 	$(this).remove();
 });
-
-$("#skip").click(function(){
-	page_num++;
-	$('#editor').text(text_file_all_text[page_num]);
-	$("#gsc-i-id1.gsc-input").val(text_file_all_text[page_num]);
-	$(".gsc-search-button").click();
+$("#previous").click(function(){
+	training_data = {};
+	training_data['content'] = full_text;
+	training_data['entities'] = entities;
+	training_datas.push(training_data);
+	page_num--;
+	entities = [];
+	full_text = "";
+	$("#editor").text("");
+	$("#editor").attr('contenteditable',true);
+	$("#save").show();
+	$("#edit").hide();
+	$("#entity").empty();
+	if(page_num > -1){
+		$('#editor').text(text_file_all_text[page_num]);
+		$("#gsc-i-id1.gsc-input").val(text_file_all_text[page_num]);
+		$(".gsc-search-button").click();
+		for (var i = 0; i < json[page_num].entities.length; i++) {
+			addentities(json[page_num].entities[i][0],json[page_num].entities[i][1],json[page_num].entities[i][2]);
+		}
+		$("#save").click();
+	}
 });
-
 $("#next").click(function(){
 	if(entities.length == 0){
 		alert("Please select atleast one entity");
