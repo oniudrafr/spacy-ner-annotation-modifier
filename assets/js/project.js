@@ -8,16 +8,23 @@ var training_data = {};
 var entities = [];
 var entities_values = [];
 var json;
-var class_names = []
+var class_names = [];
+var decalage = 0;
+var indextable = new Array();
 function l(message){
 	console.log(message);
 }
 function getRandomColor() {
-  var letters = '0123456789ABCDEF';
-  var color = '#';
-  for (var i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
+  var color = 'rgb(';
+	for (var x = 0; x < 2; x++) {
+		color += Math.floor(Math.random() * 4) + 6;
+	  color += Math.floor(Math.random() * 10);
+		color+= ",";
+	}
+	color += Math.floor(Math.random() * 4) + 6;
+  color += Math.floor(Math.random() * 10);
+	color+= ")";
+	l(color);
   return color;
 }
 function myFunction(){
@@ -60,9 +67,9 @@ function onPaste(e){
   }
 }
 // document.querySelector('[contenteditable]').addEventListener('paste', onPaste);
-function setEntityOutput(value,color){
+function setEntityOutput(value,color,idtable){
 	l(value,color);
-	$("#entity").append('<div class="entityval"><div style="background-color:'+color+'">'+value+'</div></div>');
+	$("#entity").append('<div class="entityval" id="' + idtable + '"><div style="background-color:'+color+'">'+value+'</div></div>');
 }
 function clearSelection()
 {
@@ -188,7 +195,23 @@ $( ".classes" ).on("click",".class",function(){
 	document.designMode = "off";
 	entities_values.push(selected_text);
 	entities_values.push(color_rgb);
-	setEntityOutput(selected_text,color_rgb);
+
+	//à modifier
+	//########################################################
+	var tag_string1 = '<span style="background-color: ' + color_rgb + ';">';
+	var tag_string2 = selected_text + '</span>';
+	index1 = $("#editor").html().indexOf(selected_text) - tag_string1.length;
+	index2 = $("#editor").html().indexOf(selected_text) + tag_string2.length;
+	//########################################################
+	indextable.push(index1 + "," + index2);
+	var tag_string = '<span style="background-color: ' + color_rgb + ';">' + selected_text + '</span>';
+	for (var i = 0; i < indextable.length; i++) {
+		if (indextable[i].slice(0,indextable[i].indexOf(",")) > index1) {
+			indextable[i] = indextable[i].slice(0,indextable[i].indexOf(",")) + "," + indextable[i].slice(indextable[i].indexOf(",") + 1  + tag_string.length,indextable[i].length) + tag_string.length;
+		}
+	}
+	idtable = indextable.length - 1;
+	setEntityOutput(selected_text,color_rgb,idtable);
 	selected_text = "";
 	$("#editor").attr('contenteditable',false);
 	clearSelection();
@@ -197,8 +220,18 @@ $( "#entity" ).on("dblclick",".entityval",function(){
 	var delete_text = $(this).text();
 	var e_v_idx = entities_values.indexOf(delete_text);
 	var color_txt = entities_values[e_v_idx+1];
-	var tag_string = '<span style="background-color: '+color_txt+';">'+delete_text+'</span>';
-	$("#editor").html($("#editor").html().replace(tag_string,delete_text));
+	l(indextable);
+	index1 = indextable[this.id].slice(0,indextable[this.id].indexOf(","));
+	l("index1:" + index1);
+	index2 = indextable[this.id].slice((indextable[this.id].indexOf(",") + 1),indextable[this.id].length);
+	l("index2:" + index2);
+	var textearly = $("#editor").html().slice(0,index1);
+	l("early:" + textearly);
+	var textend = $("#editor").html().slice(index2,$("#editor").html().length);
+	l("end:" + textend);
+	//$("#editor").html($("#editor").html().split(tag_string).join(delete_text));
+	$("#editor").html(textearly + delete_text + textend);
+
 	entities_values.splice(e_v_idx,1);
 	entities_values.splice(e_v_idx,1);
 	en_del_idx = full_text.indexOf(delete_text);
@@ -212,7 +245,6 @@ $( "#entity" ).on("dblclick",".entityval",function(){
 	if(del_idx != -1){
 		entities.splice(del_idx,1);
 	}
-	l(en_del_idx,en_len_cnt,delete_text,color_txt,tag_string);
 	$(this).remove();
 });
 $("#previous").click(function(){
@@ -318,9 +350,7 @@ function addentities(index1,index2,classe){
 	color_rgb = $( "#" + classe2 ).css('background-color');
 	$("#editor").attr('contenteditable',true);
 	// Colorize text
-	var tag_string = '<span style="background-color: '+color_rgb+';">'+selected_text+'</span>';
-	$("#editor").html($("#editor").html().replace(selected_text,tag_string));
-
+	//l("text:" + $("#editor").html());
 	//if (selection.rangeCount && selection.getRangeAt) {
 	//    range = selection.getRangeAt(0);
 	//}
@@ -337,7 +367,31 @@ function addentities(index1,index2,classe){
 
 	entities_values.push(selected_text);
 	entities_values.push(color_rgb);
-	setEntityOutput(selected_text,color_rgb);
+	var number = 0;
+	var tag_string = '<span style="background-color: ' + color_rgb + ';">' + selected_text + '</span>';
+	for (var i = 0; i < indextable.length; i++) {
+		if (indextable[i].slice(0,indextable[i].indexOf(",")) < index1) {
+			number ++;
+		}
+	}
+	index1 += ((tag_string.length - selected_text.length)* number);
+	index2 += ((tag_string.length - selected_text.length)* number);
+
+	var textearly = $("#editor").html().slice(0,(index1));
+	l("early:"+textearly);
+	var textend = $("#editor").html().slice((index2),$("#editor").html().length);
+	l("end:"+textend);
+	//$("#editor").html($("#editor").html().split(selected_text).join(tag_string));
+	$("#editor").html(textearly + tag_string + textend);
+	index2 += tag_string.length - selected_text.length;
+	indextable.push(index1 + "," + index2);
+	for (var i = 0; i < indextable.length; i++) {
+		if (indextable[i].slice(0,indextable[i].indexOf(",")) > index1) {
+			indextable[i] = indextable[i].slice(0,indextable[i].indexOf(",")) + tag_string.length + "," + indextable[i].slice((indextable[i].indexOf(",") + 1),indextable[i].length) + tag_string.length;
+		}
+	}
+	idtable = indextable.length - 1;
+	setEntityOutput(selected_text,color_rgb,idtable);
 	selected_text = "";
 	$("#editor").attr('contenteditable',false);
 	clearSelection();
